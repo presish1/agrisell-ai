@@ -1,0 +1,14 @@
+services:
+  agrisell:
+    build: .
+    ports:
+      - "8787:8787"
+    env_file: .env
+    environment:
+      HOST: 0.0.0.0
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?Set ADMIN_TOKEN in .env}
+    volumes:
+      - agrisell-data:/app/data
+    restart: unless-stopped
+volumes:
+  agrisell-data:

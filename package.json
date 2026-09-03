@@ -3,6 +3,21 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
-  "devDependencies": { "vite": "latest" }
+  "scripts": {
+    "dev": "concurrently -n api,web -c green,cyan \"node --watch server/index.js\" \"vite\"",
+    "dev:web": "vite",
+    "dev:api": "node --watch server/index.js",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "twilio": "^5.9.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "vite": "latest"
+  }
 }
