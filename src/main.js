@@ -1,4 +1,5 @@
 import "./product.css";
+import { mountDemo } from "./demo-dashboard.js";
 
 const api = async (path, options = {}) => {
   const r = await fetch(path, {
@@ -137,6 +138,7 @@ async function render() {
   document.querySelector("#app").innerHTML =
     `<div class="app">${sidebar()}<main>${content}</main></div>${modal()}<div class="modal" id="stockModal"></div><div class="toast" id="toast"></div>`;
   bind();
+  mountDemo({ farmers: state.farmers, api, toast });
 }
 function bind() {
   document
@@ -242,4 +244,18 @@ function editStock(id) {
     }
   };
 }
-load();
+if (new URLSearchParams(location.search).has("phone")) {
+  import("./phone.js").then((module) => module.startPhone());
+} else {
+  load();
+  setInterval(async () => {
+    if (document.querySelector(".modal.open") || document.hidden) return;
+    try {
+      const farmers = await api("/api/farmers");
+      if (JSON.stringify(farmers) !== JSON.stringify(state.farmers)) {
+        state.farmers = farmers;
+        render();
+      }
+    } catch {}
+  }, 2000);
+}

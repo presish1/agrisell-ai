@@ -6,6 +6,7 @@ import { db, listFarmers } from "./database.js";
 import { getWeather } from "./services/weather.js";
 import { getMandiSignal } from "./services/mandi.js";
 import { decide } from "./services/decision.js";
+import { demoRouter } from './demo.js';
 import {
   createMessage,
   placeCall,
@@ -47,6 +48,7 @@ app.use("/api", (req, res, next) => {
       .json({ error: "Sign in with your operator access token." });
   next();
 });
+app.use('/api/demo', demoRouter);
 app.get("/api/farmers", (_, res) => res.json(listFarmers()));
 app.post("/api/farmers", async (req, res, next) => {
   try {

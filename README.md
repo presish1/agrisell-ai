@@ -2,6 +2,30 @@
 
 A database-backed FPO workspace for farmer stock, weather-aware selling scenarios and consented outbound voice calls. This is a **pilot foundation**, not a validated autonomous agricultural adviser.
 
+## Interactive browser phone demo
+
+The demo only needs `GROQ_API_KEY` in your local `.env`. No Twilio, Sarvam, mandi key, actual phone number, or public server is needed.
+
+1. Run `npm run dev` and open `http://localhost:5173`.
+2. In **Interactive voice demo**, select a farmer and English (the fully tested speech path).
+3. Click **Open farmer phone**, then enable sound in that separate screen.
+4. On the dashboard, click **Ring demo call**. Answer on the phone screen.
+5. Click **Talk**, allow the microphone, speak, and click **Stop & send**. Alternatively type your reply.
+6. Say “I have 650 kilograms left,” then “I can store them for two days.”
+7. Say “yes” or click **Confirm & update dashboard**. The active stock refreshes on the dashboard automatically. Unconfirmed values are never saved.
+
+**Actual providers:** Groq GPT-OSS 20B for structured conversation and Whisper Large v3 Turbo for transcription. The account's available model list did not include a general-purpose 8B model, so the model defaults to `openai/gpt-oss-20b` (override with `GROQ_CHAT_MODEL`). Requests count toward your Groq account quota; this app does not upgrade plans or enable paid telephony.
+
+**Speech:** English first attempts Groq Orpheus. Groq currently requires separate model terms acceptance in this account. Until you accept those yourself, the server generates WAV speech with macOS's built-in Samantha voice. If neither is available, the browser attempts its own speech synthesis. The phone shows the provider that actually played. Hindi/Marathi conversations and transcription are supported; spoken playback uses browser voices and depends on installed language support. English is recommended for the complete demo. Microphone input requires localhost or HTTPS and browser permission; typing always remains available.
+
+**Privacy and state:** Only deliberately recorded microphone clips are sent to Groq for transcription. Conversation text (not the farmer's phone number) is sent to Groq for replies. Raw audio is not stored by this app; generated local WAV files are deleted after reading. Transcripts, call state and confirmed stock changes are kept in SQLite. This is an AI browser simulation, not a PSTN phone call. Existing real-call routes remain separate and disabled by default.
+
+**Safety:** Explicit confirmation is required. Stock edits on the dashboard invalidate a pending call's snapshot, preventing an older conversation from overwriting newer data. Negative/oversized quantities and unsupported storage periods are rejected. Saying “no” cancels the proposal. Ending an unconfirmed call does not change stock.
+
+Run the live API integration check with `node scripts/demo-smoke.mjs` while the app is running. It uses synthesized sample audio (not your microphone), verifies speech, real transcription, model extraction, confirmation, and database updates, then archives its fictional test stock. Unit tests remain offline: `npm test`.
+
+The backend is deliberately not watch-restarted during calls. Restart `npm run dev` after backend or `.env` changes; frontend changes still reload through Vite.
+
 ## Run locally
 
 Requires Node.js 24+ (uses built-in SQLite).
