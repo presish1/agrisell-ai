@@ -18,6 +18,7 @@ import { getPriceHistory, cachedPriceHistory } from "./services/price-history.js
 import { VadPool, createVoiceIngress } from "./services/voice-ingress.js";
 import { completeProposal, isConfirmation } from "./services/demo-state.js";
 import { getWeather } from "./services/weather.js";
+import { marketRegion } from "./services/locations.js";
 import { getMandiSignal } from "./services/mandi.js";
 import { boundedRead, voiceFacts } from "./services/latency.js";
 import {
@@ -61,8 +62,8 @@ function externalFacts(farmer) {
     ),
     boundedRead(
       sourceCache.get(
-        JSON.stringify(["market", day, farmer.crop]),
-        () => dated(getMandiSignal(farmer.crop)),
+        JSON.stringify(["market", day, farmer.crop, marketRegion(farmer)]),
+        () => dated(marketRegion(farmer) ? getMandiSignal(farmer.crop,...marketRegion(farmer)) : Promise.resolve({available:false,source:"Unavailable",reason:"Profile district is not verified. Select a location in Edit profile."})),
         usable,
       ),
       3000,
@@ -75,14 +76,15 @@ CREATE TABLE IF NOT EXISTS decision_reports(id INTEGER PRIMARY KEY,crop_id INTEG
 async function context(cropId, external = true) {
   const farmer = db
     .prepare(
-      "SELECT c.*, f.name,f.language,f.location,f.latitude,f.longitude FROM crops c JOIN farmers f ON f.id=c.farmer_id WHERE c.id=?",
+      "SELECT c.*, f.name,f.language,f.location,f.latitude,f.longitude,f.region_state,f.region_district FROM crops c JOIN farmers f ON f.id=c.farmer_id WHERE c.id=?",
     )
     .get(cropId);
   if (!farmer) throw new Error("Crop not found");
   // Historical ingestion is background work, never a new wait in a voice turn.
-  if (external) void getPriceHistory(farmer.crop);
+  const region = marketRegion(farmer);
+  if (external && region) void getPriceHistory(farmer.crop,...region);
   const [weather, market] = external ? await externalFacts(farmer) : [{source:"demo"}, {source:"Demo"}];
-  const priceForecast = cachedPriceHistory(farmer.crop) || {available:false, reason:"Historical data is loading; published prices and weather remain usable."};
+  const priceForecast = (region && cachedPriceHistory(farmer.crop,...region)) || {available:false, reason:"Regional history is unavailable or loading; published prices and weather remain usable."};
   const data = {
     farmer,
     sources: [
@@ -129,9 +131,10 @@ export function warmCallContext(cropId) {
   return context(cropId);
 }
 async function analyze(cropId) {
-  const crop = db.prepare("SELECT crop FROM crops WHERE id=?").get(cropId);
+  const crop = db.prepare("SELECT c.crop,f.* FROM crops c JOIN farmers f ON f.id=c.farmer_id WHERE c.id=?").get(cropId);
   if (!crop) throw Error("Crop not found");
-  await getPriceHistory(crop.crop);
+  const region = marketRegion(crop);
+  if (region) await getPriceHistory(crop.crop,...region);
   const data = await context(cropId);
   const result = await ai().models.generateContent({
     model: process.env.GEMINI_DECISION_MODEL || "gemini-2.5-flash",

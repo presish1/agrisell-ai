@@ -1,5 +1,7 @@
 import "./product.css";
 import "./refined.css";
+import { bindLocation } from "./locations.js";
+import { mountWeather } from "./weather.js";
 import { mountDemo, unmountDemo, selectFarmer } from "./demo-dashboard.js";
 
 const api = async (path, options = {}) => {
@@ -117,6 +119,7 @@ function sidebar() {
   return `<aside><div class="brand"><span>अ</span><div><b>AgriSell</b><small>FIELD INTELLIGENCE</small></div></div><div class="season"><small>PILOT REGION</small><b>Nashik, Maharashtra</b><span>Kharif · 2026</span></div><nav>${[
     ["overview", "Grid", "Overview"],
     ["prices", "Prices", "Live prices"],
+    ["weather", "Weather", "Weather"],
     ["farmers", "Users", "Farmers"],
     ["calls", "Phone", "Call centre"],
     ["intelligence", "Grid", "Data & decisions"],
@@ -234,6 +237,8 @@ async function render() {
       ? overview()
       : state.view === "prices"
         ? pricesView()
+        : state.view === "weather"
+          ? topbar("Weather & field conditions", "REGIONAL FORECAST") + '<div id="weather-panel"></div>'
         : state.view === "farmers"
           ? farmersView()
           : state.view === "intelligence"
@@ -243,6 +248,7 @@ async function render() {
   document.querySelector("#app").innerHTML =
     `<div class="app">${sidebar()}<main>${content}</main></div>${modal()}<div class="modal" id="stockModal"></div><div class="modal" id="profileModal"></div><div class="modal" id="cropModal"></div><div class="toast" id="toast"></div>`;
   bind();
+  if (state.view === "weather") mountWeather({api,farmers:activeFarmerProfiles()});
   if (["overview", "calls"].includes(state.view))
     mountDemo({ farmers: state.farmers, api, toast });
   else unmountDemo();
@@ -254,6 +260,7 @@ async function render() {
     );
 }
 function bind() {
+  bindLocation(document.querySelector('#farmerForm [name="location"]'), api);
   document
     .querySelector("#refreshPrices")
     ?.addEventListener("click", () => loadPrices(true));
@@ -429,6 +436,7 @@ function editProfile(id) {
   modal.innerHTML = `<form id="profileForm"><button type="button" class="close">×</button><p>FARMER PROFILE</p><h2>Edit ${safe(farmer.name)}</h2><small>These details apply to every vegetable recorded for this farmer.</small><div class="form"><label>Farmer name<input name="name" required value="${safe(farmer.name)}"></label><label>Phone in E.164 format<input name="phone" required value="${safe(farmer.phone)}"></label><label>Village / location<input name="location" required value="${safe(farmer.location)}"></label><label>Preferred language<select name="language">${["Marathi","Hindi","English"].map(x => `<option ${x === farmer.language ? "selected" : ""}>${x}</option>`).join("")}</select></label><label class="check"><input name="consent" type="checkbox" ${farmer.consent ? "checked" : ""}><span><b>Farmer consent recorded</b><small>Applies to calls for every crop.</small></span></label></div><button class="primary submit">Save profile</button></form>`;
   modal.classList.add("open");
   modal.querySelector(".close").onclick = () => modal.classList.remove("open");
+  bindLocation(modal.querySelector('[name="location"]'), api, farmer.location_id);
   modal.querySelector("#profileForm").onsubmit = async event => {
     event.preventDefault();
     const body = Object.fromEntries(new FormData(event.currentTarget));

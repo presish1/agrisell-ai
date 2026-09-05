@@ -6,6 +6,7 @@ import { existsSync } from "node:fs";
 import { timingSafeEqual } from "node:crypto";
 import { db, listFarmers, listFarmerProfiles } from "./database.js";
 import { getWeather } from "./services/weather.js";
+import { searchLocations, resolveLocation, marketRegion } from "./services/locations.js";
 import { getMandiSignal, getVegetablePrices } from "./services/mandi.js";
 import { decide } from "./services/decision.js";
 import { demoRouter } from "./demo.js";
@@ -67,6 +68,21 @@ app.use("/api/demo", demoRouter);
 app.use("/api/messages", messagesRouter);
 app.get("/api/farmers", (_, res) => res.json(listFarmers()));
 app.get("/api/farmer-profiles", (_, res) => res.json(listFarmerProfiles()));
+app.get("/api/locations", async (req, res) => {
+  try { res.json(await searchLocations(req.query.q)); }
+  catch (error) { res.status(502).json({error:error.message}); }
+});
+app.get("/api/weather", async (req, res) => {
+  try {
+    const place = await resolveLocation(Number(req.query.locationId));
+    const weather = await getWeather(place.label, place.latitude, place.longitude);
+    res.status(weather.available ? 200 : 502).json(weather.available ? {...weather,location:place} : {error:"Open-Meteo is unavailable. Please retry."});
+  } catch (error) { res.status(400).json({error:error.message}); }
+});
+function saveLocation(id, place) {
+  db.prepare("UPDATE farmers SET location=?,location_id=?,region_state=?,region_district=?,latitude=?,longitude=? WHERE id=?")
+    .run(place.label,place.id,place.state,place.district,place.latitude,place.longitude,id);
+}
 const languages = ["Marathi", "Hindi", "English"];
 const crops = ["Tomato", "Onion", "Grapes", "Potato"];
 const maturities = ["Ready", "Near ready", "Overripe"];
@@ -86,7 +102,7 @@ function validCrop({ crop, quantityKg, maturity, storageDays, currentPrice }) {
 function enrichFarmerLocation(id, location) {
   void getWeather(location).then(w => {
     if (Number.isFinite(w.latitude) && Number.isFinite(w.longitude))
-      db.prepare("UPDATE farmers SET latitude=?,longitude=? WHERE id=?").run(w.latitude, w.longitude, id);
+      db.prepare("UPDATE farmers SET latitude=?,longitude=? WHERE id=? AND location=? AND location_id IS NULL").run(w.latitude, w.longitude, id, location);
   }).catch(error => console.warn("Farmer weather enrichment failed:", error.message));
 }
 app.get("/api/market/vegetables", async (req, res, next) => {
@@ -137,6 +153,7 @@ app.post("/api/farmers", async (req, res, next) => {
       return res.status(400).json({
         error: "Quantity, price and storage days are outside supported limits.",
       });
+    const place = req.body.locationId ? await resolveLocation(Number(req.body.locationId)) : null;
     db.exec("BEGIN");
     try {
       const f = db
@@ -162,10 +179,11 @@ app.post("/api/farmers", async (req, res, next) => {
         storageDays,
         currentPrice,
       );
+      if (place) saveLocation(Number(f.lastInsertRowid), place);
       db.exec("COMMIT");
       res.status(201).json({ ok: true, id: Number(f.lastInsertRowid), cropId: Number(stock.lastInsertRowid) });
       // Profile creation must not depend on a third-party weather response.
-      enrichFarmerLocation(Number(f.lastInsertRowid), location);
+      if (!place) enrichFarmerLocation(Number(f.lastInsertRowid), location);
     } catch (e) {
       db.exec("ROLLBACK");
       throw e;
@@ -174,17 +192,25 @@ app.post("/api/farmers", async (req, res, next) => {
     next(e);
   }
 });
-app.patch("/api/farmers/:id", (req, res) => {
+app.patch("/api/farmers/:id", async (req, res, next) => {
+  try {
   const id = Number(req.params.id);
   const { name, phone, location, language, consent = false } = req.body;
   if (!Number.isInteger(id) || !validProfile({ name, phone, location, language }))
     return res.status(400).json({ error: "Enter a valid name, phone, location and language." });
-  const before = db.prepare("SELECT location FROM farmers WHERE id=?").get(id);
+  const before = db.prepare("SELECT location,location_id FROM farmers WHERE id=?").get(id);
   if (!before) return res.status(404).json({ error: "Farmer not found." });
+  const place = req.body.locationId ? await resolveLocation(Number(req.body.locationId)) : null;
   db.prepare("UPDATE farmers SET name=?,phone=?,location=?,language=?,consent=?,latitude=CASE WHEN location=? THEN latitude ELSE NULL END,longitude=CASE WHEN location=? THEN longitude ELSE NULL END WHERE id=?")
     .run(name.trim(), phone, location.trim(), language, consent === true ? 1 : 0, location.trim(), location.trim(), id);
-  if (before.location !== location.trim()) enrichFarmerLocation(id, location.trim());
+  if (place) saveLocation(id, place);
+  else if (before.location !== location.trim()) {
+    db.prepare("UPDATE farmers SET location_id=NULL,region_state=NULL,region_district=NULL WHERE id=?").run(id);
+    enrichFarmerLocation(id, location.trim());
+  }
+  if (before.location !== (place?.label || location.trim())) db.prepare("UPDATE crops SET needs_review=1 WHERE farmer_id=?").run(id);
   res.json({ ok: true, id });
+  } catch (error) { next(error); }
 });
 app.post("/api/farmers/:id/crops", (req, res) => {
   const farmerId = Number(req.params.id);
@@ -239,22 +265,23 @@ app.post("/api/recommendations/run", async (_, res, next) => {
   try {
     const rows = db
       .prepare(
-        "SELECT c.*,f.location,f.latitude,f.longitude FROM crops c JOIN farmers f ON f.id=c.farmer_id WHERE c.active=1",
+        "SELECT c.*,f.location,f.latitude,f.longitude,f.region_state,f.region_district FROM crops c JOIN farmers f ON f.id=c.farmer_id WHERE c.active=1",
       )
       .all();
     // Start independent commodity reads together; one slow public API request
     // must not serially delay every farmer in the refresh.
-    const marketReads = new Map(
-      [...new Set(rows.map((row) => row.crop))].map((crop) => [
-        crop,
-        getMandiSignal(crop, "Maharashtra", "Nashik"),
-      ]),
-    );
+    const marketReads = new Map();
+    const marketKey = row => JSON.stringify([row.crop,marketRegion(row)]);
+    for (const row of rows) {
+      const region = marketRegion(row);
+      if (!marketReads.has(marketKey(row))) marketReads.set(marketKey(row), region ?
+        getMandiSignal(row.crop,...region) : Promise.resolve({available:false,source:"Unavailable",reason:"Select a verified profile location."}));
+    }
     let count = 0;
     for (const row of rows) {
       const [weather, market] = await Promise.all([
         getWeather(row.location, row.latitude, row.longitude),
-        marketReads.get(row.crop),
+        marketReads.get(marketKey(row)),
       ]);
       const d = decide({
         currentPrice: row.current_price,

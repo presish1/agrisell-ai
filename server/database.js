@@ -104,6 +104,11 @@ if (!count) {
   }
 }
 
+for (const column of ["location_id INTEGER", "region_state TEXT", "region_district TEXT"]) {
+  if (!db.prepare("PRAGMA table_info(farmers)").all().some(row => row.name === column.split(" ")[0]))
+    db.exec("ALTER TABLE farmers ADD COLUMN " + column);
+}
+
 export function listFarmers() {
   return db
     .prepare(

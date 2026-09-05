@@ -30,6 +30,7 @@ The project currently targets a Nashik, Maharashtra pilot and supports English, 
 | --- | --- |
 | Overview | Active farmers, vegetables, stock on hand, urgent storage cases and calling controls |
 | Live prices | Searchable AGMARKNET vegetable observations with dates, markets, varieties, grades and source links |
+| Weather | Search Indian locations or select a geolocated farmer; view Open-Meteo current conditions and three-day rain/temperature forecasts with retrieval times and direct source links |
 | Farmers | Farmer profiles, multiple crops, profile editing, stock editing and crop-specific calls |
 | Call centre | Browser phone calls and saved conversation history |
 | Data & decisions | Collected weather, mandi evidence, price-history evaluation and decision output |
@@ -245,6 +246,8 @@ Farmer profile
 
 Setting a crop's remaining quantity to zero retires that stock record without deleting the farmer. The inactive profile remains available so a future harvest can be added cleanly.
 
+Profile location fields offer searchable Open-Meteo/GeoNames suggestions. Selecting a result saves its verified coordinates, state and district. Calls, messages and decision reports retrieve weather at those coordinates and request mandi/history evidence for that region. Unknown or unmapped districts report unavailable market data. The Live prices board remains explicitly scoped to Nashik. Existing profiles can gain precise location data through **Edit profile**. Exploring another location in Weather does not modify a farmer.
+
 ## Useful API routes
 
 | Method | Route | Purpose |
@@ -329,7 +332,7 @@ data/                   Local SQLite database (ignored by Git)
 
 ## Current limitations
 
-- The validated market scope is currently Nashik and the supported farmer-stock crops are Tomato, Onion, Grapes and Potato.
+- The Live prices board is scoped to Nashik; profile-based calls and decisions request the selected district where AGMARKNET has a matching mapping. Supported farmer-stock crops are Tomato, Onion, Grapes and Potato.
 - AGMARKNET reports are not tick-by-tick prices and cannot guarantee what a buyer will offer.
 - Voice responsiveness is limited by network conditions, Gemini availability and quota.
 - Isolated noisy one-word confirmations can still be mistranscribed; the database remains protected by strict confirmation validation.
