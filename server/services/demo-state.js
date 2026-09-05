@@ -20,8 +20,14 @@ export function validProposal(result, pending = {}) {
 export const completeProposal = (p) =>
   p && Number.isFinite(p.quantityKg) && Number.isInteger(p.storageDays);
 export const isConfirmation = (text) =>
-  /^(yes|yes please|yes correct|correct|confirm|save|save it|yes save it|हाँ|हां|हाँ सही है|हो|होय)[.!\s]*$/iu.test(
-    text.trim(),
+  /^(yes|yes please|yes correct|yes that's correct|yes that is correct|that is correct|correct|confirm|save|save it|yes save it|yep|yeah|yes sure|haan|han|ji haan|haan sahi|haan sahi hai|हाँ|हां|हाँ सही|हां सही|हाँ सही है|हां सही है|सही है|जी हाँ|जी हां|हो|होय|ہاں|ہاں صحیح ہے|ہاں صحیح|جی ہاں|ہاں درست ہے)$/iu.test(
+    text
+      .normalize("NFKC")
+      .replace(/<noise>|\[noise\]/giu, " ")
+      .trim()
+      .replace(/[,.!।?۔،؟]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
   );
 export function fallbackReply(text) {
   const qty = text.match(

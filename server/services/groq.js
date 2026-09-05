@@ -6,11 +6,13 @@ const root = "https://api.groq.com/openai/v1";
 export const chatModel = () =>
   process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-20b";
 
-async function groq(path, body, multipart = false) {
+async function groq(path, body, multipart = false, signal) {
   if (!process.env.GROQ_API_KEY) throw new Error("Groq key is not configured.");
   const response = await fetch(root + path, {
     method: "POST",
-    signal: AbortSignal.timeout(30000),
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(8000)])
+      : AbortSignal.timeout(path === "/chat/completions" ? 8000 : 30000),
     headers: {
       Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       ...(!multipart ? { "Content-Type": "application/json" } : {}),
@@ -39,6 +41,9 @@ export async function conversation(session, text) {
   ];
   const response = await groq("/chat/completions", {
     model: chatModel(),
+    ...(/^openai\/gpt-oss-(20b|120b)$/.test(chatModel())
+      ? { reasoning_effort: "low" }
+      : {}),
     messages,
     response_format: {
       type: "json_schema",

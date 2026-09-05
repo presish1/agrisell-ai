@@ -1,109 +1,340 @@
-# AgriSell AI — field intelligence pilot
+# AgriSell AI
 
-A database-backed FPO workspace for farmer stock, weather-aware selling scenarios and consented outbound voice calls. This is a **pilot foundation**, not a validated autonomous agricultural adviser.
+**A local-first field intelligence and conversational voice system for farmer stock updates, mandi prices, weather risk and selling decisions.**
 
-## Interactive browser phone demo
+AgriSell gives an FPO or field officer one place to maintain farmer profiles, track multiple vegetables per farmer, review government wholesale prices, evaluate weather and storage risk, call a farmer through a browser-based phone experience, and save only explicitly confirmed stock updates.
 
-The demo only needs `GROQ_API_KEY` in your local `.env`. No Twilio, Sarvam, mandi key, actual phone number, or public server is needed.
+The project currently targets a Nashik, Maharashtra pilot and supports English, Hindi and Marathi conversations.
 
-1. Run `npm run dev` and open `http://localhost:5173`.
-2. In **Interactive voice demo**, select a farmer and English (the fully tested speech path).
-3. Click **Open farmer phone**, then enable sound in that separate screen.
-4. On the dashboard, click **Ring demo call**. Answer on the phone screen.
-5. Click **Talk**, allow the microphone, speak, and click **Stop & send**. Alternatively type your reply.
-6. Say “I have 650 kilograms left,” then “I can store them for two days.”
-7. Say “yes” or click **Confirm & update dashboard**. The active stock refreshes on the dashboard automatically. Unconfirmed values are never saved.
+> AgriSell is a decision-support pilot—not a guaranteed price predictor, buyer marketplace, financial adviser or replacement for an agronomist. AGMARKNET observations are published wholesale records, not guaranteed buyer quotes.
 
-**Actual providers:** Groq GPT-OSS 20B for structured conversation and Whisper Large v3 Turbo for transcription. The account's available model list did not include a general-purpose 8B model, so the model defaults to `openai/gpt-oss-20b` (override with `GROQ_CHAT_MODEL`). Requests count toward your Groq account quota; this app does not upgrade plans or enable paid telephony.
+## What the system does
 
-**Speech:** English first attempts Groq Orpheus. Groq currently requires separate model terms acceptance in this account. Until you accept those yourself, the server generates WAV speech with macOS's built-in Samantha voice. If neither is available, the browser attempts its own speech synthesis. The phone shows the provider that actually played. Hindi/Marathi conversations and transcription are supported; spoken playback uses browser voices and depends on installed language support. English is recommended for the complete demo. Microphone input requires localhost or HTTPS and browser permission; typing always remains available.
+- Maintains one farmer profile with **multiple independent vegetable records**.
+- Lets operators edit a farmer's name, phone, location, language and call consent.
+- Tracks quantity, farmer-recorded price, maturity and safe-storage days per vegetable.
+- Retrieves dated Nashik mandi observations from AGMARKNET/data.gov.in.
+- Retrieves location-based forecasts from Open-Meteo.
+- Produces transparent selling guidance from stock, storage, rain risk and available market evidence.
+- Runs a continuous, hands-free Gemini Live voice conversation—no push-to-talk button.
+- Speaks and transcribes through Gemini native audio.
+- Uses local Silero voice activity detection to reject noise and detect when the farmer has finished speaking.
+- Reads proposed stock values back and requires an explicit confirmation before writing to SQLite.
+- Updates the dashboard and sends a clean in-app Messages-style receipt after a call.
+- Supports follow-up messaging for stock collection and sourced advice.
+- Preserves call history, messages, recommendations and source timestamps.
 
-**Privacy and state:** Only deliberately recorded microphone clips are sent to Groq for transcription. Conversation text (not the farmer's phone number) is sent to Groq for replies. Raw audio is not stored by this app; generated local WAV files are deleted after reading. Transcripts, call state and confirmed stock changes are kept in SQLite. This is an AI browser simulation, not a PSTN phone call. Existing real-call routes remain separate and disabled by default.
+## Product areas
 
-**Safety:** Explicit confirmation is required. Stock edits on the dashboard invalidate a pending call's snapshot, preventing an older conversation from overwriting newer data. Negative/oversized quantities and unsupported storage periods are rejected. Saying “no” cancels the proposal. Ending an unconfirmed call does not change stock.
+| Area | Purpose |
+| --- | --- |
+| Overview | Active farmers, vegetables, stock on hand, urgent storage cases and calling controls |
+| Live prices | Searchable AGMARKNET vegetable observations with dates, markets, varieties, grades and source links |
+| Farmers | Farmer profiles, multiple crops, profile editing, stock editing and crop-specific calls |
+| Call centre | Browser phone calls and saved conversation history |
+| Data & decisions | Collected weather, mandi evidence, price-history evaluation and decision output |
+| Messages | Post-call receipts and conversational stock/advice follow-up |
 
-Run the live API integration check with `node scripts/demo-smoke.mjs` while the app is running. It uses synthesized sample audio (not your microphone), verifies speech, real transcription, model extraction, confirmation, and database updates, then archives its fictional test stock. Unit tests remain offline: `npm test`.
+## How it works
 
-The backend is deliberately not watch-restarted during calls. Restart `npm run dev` after backend or `.env` changes; frontend changes still reload through Vite.
+```mermaid
+flowchart LR
+    A[Field officer dashboard] --> B[Express API]
+    C[Farmer phone UI] <-->|PCM audio + events| D[WebSocket voice router]
+    D <-->|native audio| E[Gemini Live]
+    D --> F[Silero VAD]
+    B --> G[(SQLite)]
+    D --> G
+    B --> H[AGMARKNET / data.gov.in]
+    B --> I[Open-Meteo]
+    H --> J[Decision engine]
+    I --> J
+    G --> J
+    J --> A
+    J --> D
+```
 
-## Run locally
+Each active vegetable has its own stock, recommendation, call and message context. Shared farmer details remain on the farmer profile. A voice turn follows this path:
 
-Requires Node.js 24+ (uses built-in SQLite).
+1. The browser captures 16-bit PCM microphone audio.
+2. Local Silero VAD identifies speech boundaries and filters non-speech.
+3. Audio is streamed through the local WebSocket server to Gemini Live.
+4. Gemini streams native reply audio and can call typed stock/advice tools.
+5. The server validates every proposed value locally.
+6. AgriSell reads the values back to the farmer.
+7. Only a clear confirmation triggers the SQLite transaction.
+8. The dashboard refreshes and the phone receives a readable confirmation message.
 
-```sh
-npm install
+## Technology stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | Vanilla JavaScript, HTML, CSS and Vite |
+| Backend | Node.js 24 and Express 5 |
+| Database | SQLite through Node's built-in SQLite API |
+| Realtime transport | WebSockets |
+| Voice model | `gemini-2.5-flash-native-audio-preview-09-2025` by default |
+| Dashboard/message analysis | `gemini-2.5-flash` by default |
+| Speech-to-text | Gemini Live input transcription |
+| Text-to-speech | Gemini Live native generated audio |
+| Turn detection | Silero VAD v5.1.2 through ONNX Runtime |
+| Market data | AGMARKNET 2.0/data.gov.in APIs |
+| Weather | Open-Meteo forecast and geocoding APIs |
+| Optional PSTN calls | Twilio Programmable Voice; Sarvam for regional speech where configured |
+| Optional legacy assistant | Groq `openai/gpt-oss-20b`; not used by the primary Gemini Live call path |
+| Tests | Node test runner, protocol simulations, acoustic fixtures and provider smoke scripts |
+
+## Quick start
+
+### Requirements
+
+- Node.js **24 or newer**
+- npm
+- A modern Chromium-based browser with microphone permission
+- A [Gemini API key](https://aistudio.google.com/app/apikey) for live voice and AI analysis
+- A [data.gov.in API key](https://data.gov.in/) for current AGMARKNET observations
+
+Open-Meteo does not require a key for this local pilot. Review every provider's current terms before production use.
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/presish1/agrisell-ai.git
+cd agrisell-ai
+npm ci
+```
+
+### 2. Create local configuration
+
+macOS/Linux:
+
+```bash
+test -f .env || cp .env.example .env
+```
+
+Windows PowerShell:
+
+```powershell
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+Set at least these values in `.env`:
+
+```dotenv
+GEMINI_API_KEY=your_gemini_key
+DATA_GOV_API_KEY=your_data_gov_key
+CALLS_ENABLED=false
+```
+
+Keep `CALLS_ENABLED=false` for the browser-phone experience. API keys belong only in `.env`; never paste them into source files or commit them.
+
+### 3. Start AgriSell
+
+```bash
 npm run dev
 ```
 
-Open http://localhost:5173. The API runs on 127.0.0.1:8787. SQLite is created at `data/agrisell.db`; it is ignored by Git. Seed farmers are fictional and cannot be called without consent.
+Open [http://localhost:5173](http://localhost:5173). The API listens on `http://127.0.0.1:8787`.
 
-## What works
+SQLite is created automatically at `data/agrisell.db`. The first run adds fictional, non-consented seed profiles so the dashboard is immediately understandable.
 
-- Farmer onboarding and active crop records persisted in SQLite.
-- Edit remaining stock, storage days and price; zero stock archives the crop.
-- Live Open-Meteo weather by location, with explicitly labelled fallback data.
-- AGMARKNET adapter through data.gov.in, restricted to Nashik pilot markets; accepts a configured API key and rejects records older than three days.
-- Transparent SELL / WAIT / OTHER MANDI scenario calculations, including spoilage, rainfall and assumed transport cost.
-- English, Hindi and Marathi call scripts; actual Twilio outbound calls, optional Sarvam regional speech, provider status retrieval, consent and cooldown checks.
-- Operator-token access when `ADMIN_TOKEN` is configured.
-- No real calls in the default mode. Simulated calls are labelled and logged, never marked delivered.
+### 4. Try the complete workflow
 
-## Activate integrations
+1. Open **Farmers** and choose **Add farmer**.
+2. Record consent only when the farmer has actually agreed to the call.
+3. Use **Add vegetable stock** to attach additional vegetables to the same profile.
+4. Return to **Overview**, select the farmer/crop and open the phone.
+5. Answer the incoming call and allow microphone access.
+6. Speak naturally. AgriSell asks for current kilograms and safe-storage days.
+7. Confirm the exact read-back. The database and dashboard update immediately.
+8. End the call to receive the saved summary and key insights in Messages.
 
-Copy `.env.example` to `.env` and fill it locally. Never commit credentials.
+## Install it with Codex or another local coding agent
 
-### Weather
+A normal web chat cannot silently install software on a device. Use a local coding agent with filesystem and terminal access, such as Codex desktop or Codex CLI. OpenAI's current setup options are described in the [official Codex quickstart](https://learn.chatgpt.com/docs/quickstart).
 
-[Open-Meteo](https://open-meteo.com/en/docs) is used without a key for local evaluation. Review its commercial-use terms or use a licensed/self-hosted service before commercial launch. The API is open-source; an open API is not the same as an unrestricted free production service.
+Send the repository URL together with this prompt:
 
-### Mandi prices
+```text
+Install and run AgriSell AI from:
+https://github.com/presish1/agrisell-ai
 
-Create a data.gov.in API key and set `DATA_GOV_API_KEY`. The adapter uses the [AGMARKNET daily price resource](https://www.data.gov.in/resource/current-daily-price-various-commodities-various-markets-mandi). Values are normalized from rupees/quintal to rupees/kg. If the API fails, returns no recent records or has no key, the app shows demo data and blocks live recommendation calls. Validate market names, commodity grades, dates and units against your pilot before enabling operations.
+Please:
+1. Clone the repository into a new local folder.
+2. Verify that Node.js 24+ and npm are available.
+3. Run npm ci.
+4. Copy .env.example to .env only if .env does not already exist.
+5. Ask me to enter GEMINI_API_KEY and DATA_GOV_API_KEY locally. Never print,
+   transmit or commit my keys.
+6. Keep CALLS_ENABLED=false unless I explicitly ask to configure real telephony.
+7. Run npm test and npm run build.
+8. Start npm run dev and open http://localhost:5173.
+9. Tell me clearly if microphone permission, an API quota or a provider setting
+   blocks any feature.
+```
 
-### Actual phone calls
+## Environment variables
 
-Set `ADMIN_TOKEN`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, and `CALLS_ENABLED=true`. Twilio requires an enabled/funded account, a valid caller ID and permission to call the destination. Calls are billed. Account/geographic restrictions may apply.
+| Variable | Required | Description |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | Voice/AI | Gemini Live voice, messages and decision reports |
+| `GEMINI_LIVE_MODEL` | No | Overrides the native-audio model |
+| `GEMINI_DECISION_MODEL` | No | Overrides the dashboard/message analysis model |
+| `VOICE_INPUT_MODE` | No | `local` uses Silero VAD; `provider` restores provider-side detection for comparison |
+| `DATA_GOV_API_KEY` | Live prices | data.gov.in/AGMARKNET access |
+| `DATA_GOV_RESOURCE_ID` | No | Current daily market-price resource ID |
+| `DATA_GOV_VARIETY_RESOURCE_ID` | No | Variety-wise market-price resource ID |
+| `ADMIN_TOKEN` | Production | Protects API routes when configured and is required for non-localhost binding |
+| `HOST` / `PORT` | No | API bind address and port; defaults to `127.0.0.1:8787` |
+| `APP_URL` | Regional telephony | Public HTTPS origin used for short-lived generated audio |
+| `CALLS_ENABLED` | Real calls | Must be `true` before Twilio calls are allowed |
+| `TWILIO_ACCOUNT_SID` | Real calls | Twilio account identifier |
+| `TWILIO_AUTH_TOKEN` | Real calls | Twilio credential |
+| `TWILIO_FROM_NUMBER` | Real calls | Enabled Twilio caller ID |
+| `SARVAM_API_KEY` | Optional | Regional speech for the legacy/PSTN adapter |
+| `GROQ_API_KEY` | Optional | Legacy HTTP assistant only; unused by Gemini Live calls |
+| `GROQ_CHAT_MODEL` | Optional | Legacy Groq model override |
 
-For Hindi or Marathi calls, also set `SARVAM_API_KEY` and a public HTTPS `APP_URL`. Sarvam creates the spoken audio; Twilio fetches it from a short-lived unguessable URL. English calls use inline TwiML and do not need public audio hosting. Regional audio is held in memory for 15 minutes, so this implementation is single-instance.
+See [`.env.example`](./.env.example) for safe defaults and resource IDs.
 
-1. Add a real test farmer with their explicit consent and international-format phone number.
-2. Connect and validate the mandi feed.
-3. Run intelligence, review the recommendation and click **Call farmer**.
-4. Open **Call centre** to retrieve the provider status.
+## Market and weather evidence
 
-Calls are blocked for demo market recommendations, unconsented farmers, stale stock records and repeat contact within 12 hours. Do not use this for unsolicited calling; verify applicable telecom/provider requirements before a pilot.
+### AGMARKNET
 
-## Tests
+The app queries Government of India datasets through data.gov.in, validates commodity/state/district and price ranges, converts rupees per quintal to rupees per kilogram, and retains the observation's market, variety, grade and report date.
 
-```sh
+The UI never changes an older report date to today's date. Government publication can lag, and some vegetables can have different latest dates. If data is unavailable, stale, malformed or mismatched, AgriSell marks it unavailable instead of inventing a live price.
+
+Primary resources:
+
+- [Current daily prices across markets](https://www.data.gov.in/resource/current-daily-price-various-commodities-various-markets-mandi)
+- [Variety-wise daily market prices](https://www.data.gov.in/resource/variety-wise-daily-market-prices-data-commodity)
+
+### Open-Meteo
+
+The weather adapter retrieves geocoding and a three-day forecast. Advice clearly names Open-Meteo and the forecast date. Weather calls are bounded and cached briefly; unavailable forecasts cannot silently become real evidence.
+
+- [Forecast API](https://open-meteo.com/en/docs)
+- [Geocoding API](https://open-meteo.com/en/docs/geocoding-api)
+
+## Decision engine
+
+The decision layer combines:
+
+- confirmed quantity and storage window;
+- crop maturity;
+- dated wholesale observations;
+- rain probability and expected precipitation;
+- farmer-recorded price;
+- explicit operational assumptions.
+
+Local rules create the safety-critical action and evidence structure. Gemini turns those facts into a readable report or conversation. The model is not allowed to invent buyers, future prices or guaranteed gains. Historical price evaluation is labelled experimental and remains unavailable when the series is too sparse or cannot be validated.
+
+## Database model
+
+```text
+Farmer profile
+├── Crop stock A
+│   ├── Recommendations
+│   └── Calls / messages
+├── Crop stock B
+│   ├── Recommendations
+│   └── Calls / messages
+└── Shared name, phone, location, language and consent
+```
+
+Setting a crop's remaining quantity to zero retires that stock record without deleting the farmer. The inactive profile remains available so a future harvest can be added cleanly.
+
+## Useful API routes
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Provider and service status |
+| `GET` | `/api/farmers` | Active crop records |
+| `GET` | `/api/farmer-profiles` | Profiles with active and historical crops |
+| `POST` | `/api/farmers` | Create a farmer and first crop |
+| `PATCH` | `/api/farmers/:id` | Edit shared farmer details |
+| `POST` | `/api/farmers/:id/crops` | Add another vegetable |
+| `PATCH` | `/api/crops/:id` | Update or retire stock |
+| `GET` | `/api/market/vegetables` | Validated Nashik vegetable board |
+| `POST` | `/api/recommendations/run` | Refresh evidence and decisions |
+| `WS` | `/api/live` | Gemini Live conversation transport |
+
+## Testing
+
+```bash
 npm test
 npm run build
-# With the local API running, simulator mode only:
-node scripts/smoke.mjs
 ```
 
-The smoke test creates a fictional record, runs analysis, verifies a simulated call and call history, then archives its stock.
+The automated suite covers long conversations, rapid turns, interruptions, delayed/dropped events, reconnects, playback queues, noise rejection, confirmation-only database writes, multilingual confirmation variants, market validation, source caching and recommendation logic.
 
-## Deployment
+Provider smoke tests use API quota and create temporary fictional records that are retired after the run:
 
-```sh
+```bash
+node scripts/live-smoke.mjs --hindi --noise --separate-fields --advice
+node scripts/opening-smoke.mjs
+node scripts/messages-smoke.mjs
+node scripts/vad-qa.mjs
+```
+
+Detailed engineering evidence and remaining limitations are in:
+
+- [`PRODUCT_QA.md`](./PRODUCT_QA.md)
+- [`VOICE_QA_PLAN.md`](./VOICE_QA_PLAN.md)
+- [`VOICE_SAVE_REGRESSION.md`](./VOICE_SAVE_REGRESSION.md)
+
+## Production build and Docker
+
+Local production build:
+
+```bash
 npm run build
-ADMIN_TOKEN=your-long-random-token HOST=0.0.0.0 npm start
+ADMIN_TOKEN=replace-with-a-long-random-token HOST=0.0.0.0 npm start
 ```
 
-Serve behind HTTPS, mount persistent storage for `data/`, back up the SQLite database, and set provider secrets through the host's secret manager. `Dockerfile` and `compose.yaml` are supplied. The token gate is a single-operator pilot mechanism, not multi-tenant authentication.
+Docker Compose:
 
-## Before a commercial launch
+```bash
+docker compose up --build
+```
 
-- Replace the scenario heuristic with a time-series model trained and backtested on crop/grade/market histories. The displayed range is a scenario band, **not a calibrated prediction interval**.
-- Validate spoilage and transport assumptions with the FPO. Today’s baseline is entered by the officer; cross-market observations are not a future-price forecast.
-- Add historical arrivals, grade matching, stale-stock verification and market-level logistics. Current data integration is focused on Nashik and four crops.
-- Add multi-user roles, audit trails, consent history, retention/deletion policy, encrypted backups, rate limits, monitoring and recovery tests.
-- Validate voice pronunciation, delivery costs and provider/telecom permissions for the target farmer group.
-- Run a controlled pilot measuring net realization against a sell-today baseline. Human review is required; there is no automatic scheduled calling in this version.
+The Compose service exposes [http://localhost:8787](http://localhost:8787) and keeps SQLite in a named volume. Set a strong `ADMIN_TOKEN` in `.env` first.
 
-## API references
+Before public deployment, place the server behind HTTPS, use a secret manager, back up persistent storage, add multi-user authorization, define data-retention rules, monitor provider failures and verify all calling/consent requirements in the operating region.
 
-- [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api)
-- [Twilio Calls API](https://www.twilio.com/docs/voice/api/call-resource)
-- [Sarvam speech API](https://docs.sarvam.ai/api-reference/text-to-speech/convert)
+## Privacy and safety
+
+- `.env`, SQLite databases, build output and dependencies are excluded from Git.
+- Raw microphone audio is streamed for the live conversation and is not intentionally persisted by this application.
+- Conversation text, calls, messages and confirmed stock updates are stored locally in SQLite.
+- A proposed stock update does not write anything until the farmer confirms the read-back.
+- Concurrent or stale updates are rejected rather than overwriting newer records.
+- Real telephone calls remain disabled by default.
+- Never use the system for unsolicited calling.
+- Verify variety, grade, transport cost and a real buyer quote before a sale.
+
+## Project structure
+
+```text
+src/                    Dashboard, phone, messaging and audio playback UI
+server/                 Express API, WebSocket voice router and SQLite access
+server/services/        Market, weather, voice, decision and reliability modules
+server/assets/          Pinned Silero VAD model and license
+test/                   Deterministic unit and stress tests
+scripts/                Live-provider, protocol and acoustic QA tools
+public/                 Browser audio-capture worker
+data/                   Local SQLite database (ignored by Git)
+```
+
+## Current limitations
+
+- The validated market scope is currently Nashik and the supported farmer-stock crops are Tomato, Onion, Grapes and Potato.
+- AGMARKNET reports are not tick-by-tick prices and cannot guarantee what a buyer will offer.
+- Voice responsiveness is limited by network conditions, Gemini availability and quota.
+- Isolated noisy one-word confirmations can still be mistranscribed; the database remains protected by strict confirmation validation.
+- The product has been engineered as a serious local pilot, but it still needs role-based access, monitoring, backups and field validation before commercial deployment.
+
+## Contributing
+
+Issues and pull requests are welcome. Please run `npm test`, `npm run build` and `git diff --check` before submitting changes. Never include real farmer data, call recordings, credentials or local databases in a contribution.

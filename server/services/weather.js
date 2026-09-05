@@ -10,10 +10,10 @@ export async function getWeather(location, latitude, longitude) {
   try {
     if (!latitude || !longitude) {
       const geo = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location + ", Maharashtra")}&count=1&countryCode=IN`,
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location.split(',')[0].trim())}&count=5&countryCode=IN`,
         { signal: AbortSignal.timeout(10000) },
       );
-      const match = (await geo.json()).results?.[0];
+      const match = (await geo.json()).results?.find(r => r.country_code === 'IN' && r.admin1 === 'Maharashtra');
       if (!match) throw new Error("Location not found");
       ({ latitude, longitude } = match);
     }
@@ -37,6 +37,11 @@ export async function getWeather(location, latitude, longitude) {
       latitude,
       longitude,
       source: "Open-Meteo",
+      daily: data.daily.time.map((date, i) => ({
+        date,
+        rainProbability: data.daily.precipitation_probability_max[i],
+        precipitationMm: data.daily.precipitation_sum[i],
+      })),
     };
   } catch {
     return fallback;

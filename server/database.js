@@ -39,6 +39,13 @@ if (
   db.exec(
     "ALTER TABLE crops ADD COLUMN needs_review INTEGER NOT NULL DEFAULT 0",
   );
+if (
+  !db
+    .prepare("PRAGMA table_info(recommendations)")
+    .all()
+    .some((column) => column.name === "market_json")
+)
+  db.exec("ALTER TABLE recommendations ADD COLUMN market_json TEXT");
 const count = db.prepare("SELECT count(*) count FROM farmers").get().count;
 if (!count) {
   const addFarmer = db.prepare(
@@ -101,11 +108,18 @@ export function listFarmers() {
   return db
     .prepare(
       `SELECT f.*, c.id crop_id,c.crop,c.quantity_kg,c.maturity,c.storage_days,c.current_price,
-    r.id recommendation_id,r.action,r.forecast_low,r.forecast_high,r.expected_gain,r.confidence,r.reason,r.market_source,r.weather_json,r.created_at recommendation_at,
+    r.id recommendation_id,r.action,r.forecast_low,r.forecast_high,r.expected_gain,r.confidence,r.reason,r.market_source,r.market_json,r.weather_json,r.created_at recommendation_at,
     (SELECT status FROM calls WHERE recommendation_id=r.id ORDER BY id DESC LIMIT 1) call_status
     FROM farmers f JOIN crops c ON c.farmer_id=f.id AND c.active=1
     LEFT JOIN recommendations r ON c.needs_review=0 AND r.id=(SELECT id FROM recommendations WHERE crop_id=c.id ORDER BY id DESC LIMIT 1)
     ORDER BY f.id DESC`,
     )
     .all();
+}
+export function listFarmerProfiles() {
+  return db.prepare(`
+    SELECT f.*, c.id crop_id,c.crop,c.quantity_kg,c.maturity,c.storage_days,c.current_price,c.active,c.created_at crop_created_at
+    FROM farmers f LEFT JOIN crops c ON c.farmer_id=f.id
+    ORDER BY f.id DESC,c.active DESC,c.id DESC
+  `).all();
 }

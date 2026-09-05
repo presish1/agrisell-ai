@@ -1,0 +1,781 @@
+.voice-room {
+  min-height: 100dvh;
+  background: radial-gradient(ellipse at 45% 30%, #e2e5e1, #bbc3be);
+  display: grid;
+  place-items: center;
+  padding: 38px 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  color: white;
+}
+.iphone-hardware {
+  position: relative;
+  width: 393px;
+  padding: 9px;
+  background: linear-gradient(
+    110deg,
+    #656762,
+    #121311 8%,
+    #484a46 49%,
+    #191b19 94%,
+    #777a73
+  );
+  border-radius: 59px;
+  box-shadow:
+    0 38px 65px #27382c55,
+    0 0 0 1px #a6aaa5,
+    inset 0 0 0 2px #858983;
+}
+.side-button {
+  position: absolute;
+  left: -3px;
+  top: 135px;
+  width: 3px;
+  height: 29px;
+  background: #555b53;
+  border-radius: 2px;
+}
+.side-two {
+  top: 189px;
+  height: 54px;
+}
+.side-three {
+  left: auto;
+  right: -3px;
+  top: 203px;
+  height: 82px;
+}
+.farmer-phone {
+  height: 806px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 50px;
+  border: 3px solid #060807;
+  background:
+    radial-gradient(ellipse at 15% 8%, #71817c, transparent 60%),
+    radial-gradient(ellipse at 90% 40%, #2c5354, transparent 65%),
+    linear-gradient(150deg, #59645e, #243a36 68%, #192c27);
+  text-align: center;
+}
+.farmer-phone [hidden] {
+  display: none !important;
+}
+.farmer-phone button {
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+  border: 0;
+}
+.farmer-phone button:focus-visible {
+  outline: 3px solid #78caff;
+  outline-offset: 4px;
+}
+.farmer-phone svg {
+  width: 27px;
+  height: 27px;
+  flex-shrink: 0;
+}
+.dynamic-island {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 119px;
+  height: 33px;
+  background: #050605;
+  border-radius: 30px;
+  z-index: 6;
+}
+.dynamic-island i {
+  position: absolute;
+  right: 12px;
+  top: 11px;
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, #243b5d, #07101b);
+  border-radius: 50%;
+}
+.phone-top {
+  height: 65px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 29px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.status-icons {
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.status-icons span {
+  font-size: 10px;
+}
+.contact-photo {
+  width: 96px;
+  height: 96px;
+  background: linear-gradient(135deg, #bed7b6, #6d9276);
+  color: #f4f8ed;
+  border: 1px solid #ffffff30;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 60px;
+  line-height: 1;
+  margin: 43px auto 20px;
+  box-shadow: 0 8px 24px #183b2328;
+}
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 1.7px;
+  color: #d5dfd7;
+  margin: 0 0 9px;
+}
+.farmer-phone h1 {
+  font-size: 37px;
+  font-weight: 400;
+  letter-spacing: 0.1px;
+  margin: 0 0 6px;
+}
+#voice-status {
+  font-size: 17px;
+  line-height: 1.4;
+  color: #e5ece7;
+  margin: 0 22px;
+  min-height: 26px;
+}
+#voice-caption {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #b9cdc3;
+  margin: 12px 24px;
+  min-height: 35px;
+  white-space: pre-line;
+}
+.enable-ring {
+  background: #ffffff1c;
+  border: 1px solid #ffffff24 !important;
+  border-radius: 18px;
+  padding: 7px 14px;
+  font-size: 11px !important;
+}
+.mic-meter {
+  height: 3px;
+  width: 70px;
+  border-radius: 10px;
+  background: #ffffff20;
+  margin: 14px auto 0;
+  overflow: hidden;
+}
+.mic-meter i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: #b3f0c0;
+  transition: width 0.08s;
+}
+#capture-status {
+  font-size: 11px;
+  color: #d5e4db;
+  height: 32px;
+  margin: 8px 24px 0;
+  overflow: auto;
+  line-height: 1.5;
+}
+#stock-saved {
+  font-size: 10px;
+  color: #bff2c6;
+  min-height: 15px;
+  margin: 2px 20px;
+}
+.ios-call-grid {
+  display: flex;
+  justify-content: center;
+  gap: 31px;
+  margin: 23px 0 37px;
+}
+.ios-call-grid button,
+.phone-actions button {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  position: relative;
+  background: #ffffff24;
+  backdrop-filter: blur(15px);
+}
+.ios-call-grid small,
+.phone-actions small {
+  position: absolute;
+  top: 73px;
+  font-size: 12px;
+  white-space: nowrap;
+  font-weight: 400;
+}
+.ios-call-grid button.selected {
+  background: #fff;
+  color: #26382f;
+}
+.ios-call-grid button.selected small {
+  color: white;
+}
+.phone-actions {
+  display: flex;
+  justify-content: center;
+  gap: 116px;
+  margin: 0 0 38px;
+}
+.phone-actions #answer-call {
+  background: #32d15d;
+}
+.phone-actions #answer-call:disabled {
+  background: #ffffff18;
+  color: #ffffff60;
+  cursor: default;
+}
+.phone-actions #end-call,
+.phone-actions #decline-call {
+  background: #ff453a;
+}
+.phone-actions #end-call svg,
+.phone-actions #decline-call svg {
+  transform: rotate(135deg);
+}
+.farmer-phone[data-state="ringing"] .ios-call-grid {
+  visibility: hidden;
+}
+.farmer-phone[data-state="active"] .contact-photo {
+  margin-top: 26px;
+}
+#transcript-panel {
+  font-size: 10px;
+  margin: 4px 30px;
+  color: #d3e0d7;
+  text-align: left;
+}
+#transcript-panel p {
+  max-height: 50px;
+  overflow: auto;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+.open-messages {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 15px auto 0;
+  background: transparent;
+  font-size: 11px !important;
+  opacity: 0.8;
+}
+.open-messages svg {
+  width: 17px;
+  height: 17px;
+}
+.home-indicator {
+  position: absolute;
+  bottom: 9px;
+  width: 132px;
+  height: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 10px;
+  background: #fff;
+  z-index: 8;
+}
+.message-notification {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 61px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 13px;
+  border-radius: 23px;
+  background: #f0f3f0eb;
+  color: #101c15 !important;
+  backdrop-filter: blur(25px);
+  box-shadow: 0 8px 30px #0003;
+  text-align: left;
+  animation: notification-drop 0.45s ease-out;
+}
+.messages-app {
+  width: 39px;
+  height: 39px;
+  background: linear-gradient(#60ed79, #20bf43);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: white;
+}
+.messages-app svg {
+  width: 26px;
+  height: 26px;
+  fill: white;
+}
+.message-notification > span:last-child {
+  flex: 1;
+  min-width: 0;
+}
+.message-notification small {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.6px;
+  color: #5c655d;
+}
+.message-notification em {
+  float: right;
+  font-style: normal;
+  letter-spacing: 0;
+}
+.message-notification b {
+  display: block;
+  font-size: 13px;
+  margin: 3px 0;
+}
+.message-notification #notification-text {
+  display: block;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@keyframes notification-drop {
+  from {
+    transform: translateY(-130px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.in-messages {
+  background: #fff;
+  color: #101010;
+}
+.in-messages .home-indicator {
+  background: #111;
+}
+.in-messages .phone-top {
+  color: #111;
+}
+#messages-screen {
+  position: absolute;
+  inset: 65px 0 20px;
+  background: #fff;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+.messages-header {
+  height: 92px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center !important;
+  background: #f7f7f8;
+  border-bottom: 1px solid #dedee1;
+  margin: 0 !important;
+  padding: 4px !important;
+  flex-shrink: 0;
+}
+.messages-header button {
+  position: absolute;
+  left: 16px;
+  top: 19px;
+  background: transparent;
+  color: #007aff;
+  font-size: 39px;
+  line-height: 1;
+}
+.messages-header > div {
+  text-align: center;
+}
+.message-avatar {
+  height: 43px;
+  width: 43px;
+  border-radius: 50%;
+  background: #8b9b8d;
+  color: white;
+  font-size: 28px;
+  display: grid;
+  place-items: center;
+  margin: auto auto 5px;
+}
+.messages-header b {
+  font-size: 11px;
+  font-weight: 500;
+}
+.messages-header b span {
+  color: #999;
+}
+.message-thread {
+  padding: 18px 16px;
+  flex: 1;
+  overflow: auto;
+}
+.thread-label {
+  font-size: 10px;
+  text-align: center;
+  color: #888;
+  line-height: 1.7;
+  margin: 0 0 22px;
+}
+.receipt-bubble {
+  white-space: pre-wrap;
+  background: #e9e9eb;
+  border-radius: 19px 19px 19px 5px;
+  line-height: 1.5;
+  padding: 13px 15px;
+  font-size: 13px;
+  max-width: 94%;
+  color: #111;
+}
+.receipt-sources {
+  font-size: 10px;
+  line-height: 1.5;
+  padding: 12px 10px;
+}
+.receipt-sources a {
+  display: block;
+  color: #007aff;
+  margin-bottom: 8px;
+}
+.message-local {
+  font-size: 9px;
+  color: #999;
+  text-align: center;
+}
+#message-empty {
+  color: #888;
+  line-height: 1.6;
+  font-size: 13px;
+  text-align: center;
+  margin: 50px 20px;
+}
+.message-compose {
+  padding: 10px 14px 13px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #fafafa;
+}
+.message-compose > span {
+  font-size: 30px;
+  color: #888;
+}
+.message-compose > div {
+  border: 1px solid #d4d4d7;
+  border-radius: 22px;
+  color: #999;
+  padding: 9px 10px;
+  flex: 1;
+  font-size: 11px;
+}
+.message-compose > div span {
+  float: right;
+  background: #a5afba;
+  border-radius: 50%;
+  color: white;
+  padding: 0 5px;
+  font-size: 14px;
+}
+@media (max-width: 440px) {
+  .voice-room {
+    padding: 10px 6px;
+  }
+  .iphone-hardware {
+    width: min(393px, 100%);
+  }
+  .farmer-phone {
+    height: calc(100dvh - 38px);
+    min-height: 740px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .message-notification {
+    animation: none;
+  }
+}
+
+/* iPhone proportions and native call hierarchy. */
+.voice-room {
+  background: #edede9;
+  padding: 28px 20px;
+  color: #fff;
+}
+.iphone-hardware {
+  width: 393px;
+  padding: 7px;
+  border-radius: 57px;
+  background: linear-gradient(
+    95deg,
+    #777976,
+    #c3c4be 2%,
+    #555752 3%,
+    #252622 97%,
+    #acada7
+  );
+  box-shadow:
+    0 25px 70px #1f241f26,
+    0 0 0 1px #96988f;
+}
+.farmer-phone {
+  height: 818px;
+  border-radius: 50px;
+  background:
+    radial-gradient(ellipse at 18% 4%, #8f969d, transparent 65%),
+    linear-gradient(160deg, #61707e, #253541 60%, #16202b);
+  color: #fff;
+}
+.phone-top {
+  padding-inline: 28px;
+  color: #fff;
+}
+.contact-photo {
+  width: 88px;
+  height: 88px;
+  margin: 38px auto 19px;
+  font-size: 45px;
+  font-weight: 500;
+  background: #ffffff24;
+  border: 1px solid #ffffff19;
+  box-shadow: none;
+  color: #fff;
+}
+.eyebrow {
+  display: none;
+}
+.farmer-phone h1 {
+  font-size: 37px;
+  font-weight: 500;
+  letter-spacing: -1px;
+  margin-bottom: 7px;
+}
+#voice-status {
+  font-size: 17px;
+  font-weight: 400;
+  color: #e3e7ec;
+  max-width: 310px;
+  margin-inline: auto;
+}
+#voice-caption {
+  font-size: 12px;
+  color: #bbc5ce;
+  margin-top: 16px;
+  min-height: 36px;
+}
+#call-screen {
+  position: relative;
+  display: flow-root;
+  height: calc(100% - 65px);
+}
+.ios-call-grid {
+  position: absolute;
+  top: 395px;
+  left: 0;
+  right: 0;
+  gap: 29px;
+  margin: 0;
+}
+.ios-call-grid button {
+  height: 69px;
+  width: 69px;
+  background: #ffffff28;
+}
+.ios-call-grid small {
+  top: 78px;
+  font-size: 12px;
+}
+.phone-actions {
+  position: absolute;
+  bottom: 110px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  gap: 135px;
+}
+.phone-actions button {
+  height: 70px;
+  width: 70px;
+}
+.phone-actions small {
+  top: 80px;
+}
+#transcript-panel {
+  position: absolute;
+  top: 298px;
+  left: 0;
+  right: 0;
+  margin: 0 24px;
+  background: #0b15232b;
+  border-radius: 10px;
+  z-index: 3;
+  padding: 12px;
+}
+#transcript-panel:not([open]) {
+  display: none;
+}
+#transcript-panel p {
+  max-height: 70px;
+  font-size: 11px;
+}
+#capture-status {
+  font-size: 11px;
+  height: auto;
+  min-height: 22px;
+  max-height: 40px;
+  color: #e0e6ed;
+}
+#stock-saved {
+  font-size: 11px;
+  color: #d1f2d8;
+}
+.mic-meter {
+  background: #ffffff18;
+  margin-top: 12px;
+}
+.open-messages {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  border-radius: 24px;
+  padding: 9px 16px;
+  background: #ffffff12;
+  opacity: 1;
+  font-size: 12px !important;
+}
+.farmer-phone[data-state="waiting"] .ios-call-grid,
+.farmer-phone[data-state="waiting"] .phone-actions,
+.farmer-phone[data-state="waiting"] .mic-meter {
+  display: none;
+}
+.farmer-phone[data-state="waiting"] .contact-photo {
+  margin-top: 130px;
+}
+.farmer-phone[data-state="waiting"] .open-messages {
+  bottom: 125px;
+  padding: 14px 26px;
+  background: #ffffff24;
+  font-size: 15px !important;
+}
+.farmer-phone[data-state="active"] .contact-photo {
+  margin-top: 35px;
+}
+.farmer-phone[data-state="ringing"] .contact-photo {
+  margin-top: 85px;
+}
+.in-messages {
+  background: #fff !important;
+  color: #151515;
+}
+.messages-header {
+  height: 86px !important;
+  background: #f8f8faf5;
+}
+.message-avatar {
+  background: #a0a7af;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.message-thread {
+  padding: 18px 15px 8px;
+}
+.receipt-bubble {
+  max-width: 91%;
+  font-size: 14px;
+  line-height: 1.45;
+  background: #e9e9eb;
+  padding: 12px 14px;
+}
+.receipt-sources {
+  padding: 8px 4px;
+  font-size: 10px;
+}
+.thread-label {
+  font-size: 11px;
+  color: #8c8c91;
+}
+.chat-bubble {
+  width: fit-content;
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 19px;
+  font-size: 15px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  margin: 9px 0;
+  overflow-wrap: anywhere;
+}
+.chat-bubble.incoming {
+  background: #e9e9eb;
+  color: #111;
+  border-bottom-left-radius: 5px;
+}
+.chat-bubble.outgoing {
+  margin-left: auto;
+  background: #087afa;
+  color: white;
+  border-bottom-right-radius: 5px;
+}
+.message-compose {
+  padding: 10px 14px 19px;
+  background: #fff;
+}
+.message-compose > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 5px 4px 13px;
+  border-radius: 24px;
+  border: 1px solid #c8c8cb;
+}
+.message-compose input {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 7px 0 !important;
+  outline: none;
+  min-width: 0;
+  width: 100%;
+  font:
+    15px -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  color: #111;
+}
+.farmer-phone #send-message {
+  background: #087afa;
+  color: #fff;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  font-size: 25px;
+  line-height: 1;
+}
+.farmer-phone #send-message:disabled {
+  background: #bfc1c5;
+}
+#message-error {
+  color: #6e6e73;
+  font-size: 11px;
+  text-align: center;
+  line-height: 1.4;
+  padding: 8px;
+}
+@media (max-width: 440px) {
+  .voice-room {
+    padding: 12px 6px;
+  }
+  .iphone-hardware {
+    width: min(393px, 100%);
+  }
+  .farmer-phone {
+    height: 818px;
+    min-height: 0;
+  }
+}

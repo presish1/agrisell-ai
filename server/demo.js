@@ -1,6 +1,8 @@
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { db } from "./database.js";
+import { callReceipt } from "./services/call-receipt.js";
+import { stockConfirmation } from "./services/stock-confirmation.js";
 import {
   conversation,
   speech,
@@ -34,12 +36,12 @@ const sessions = () =>
       id: row.id,
       status: row.status,
     }));
-function get(id) {
+export function get(id) {
   const row = db.prepare("SELECT * FROM demo_sessions WHERE id=?").get(id);
   if (!row) throw new Error("Call not found.");
   return { ...JSON.parse(row.payload), id: row.id, status: row.status };
 }
-function save(s) {
+export function save(s) {
   db.prepare("UPDATE demo_sessions SET status=?,payload=? WHERE id=?").run(
     s.status,
     JSON.stringify(s),
@@ -47,7 +49,7 @@ function save(s) {
   );
   return s;
 }
-function append(s, role, text) {
+export function append(s, role, text) {
   s.messages.push({
     id: randomUUID(),
     role,
@@ -69,7 +71,7 @@ const active = (s) => {
   if (s.status !== "connected")
     throw new Error("Answer the call before talking.");
 };
-function confirm(s) {
+export function confirm(s) {
   active(s);
   if (!completeProposal(s.pending))
     throw new Error("First provide stock quantity and storage days.");
@@ -111,11 +113,7 @@ function confirm(s) {
     append(
       s,
       "assistant",
-      s.language === "English"
-        ? `Saved. Your dashboard now shows ${s.saved.quantityKg} kilograms and ${s.saved.storageDays} storage days. Thank you. Your field officer will review the selling advice using this updated stock.`
-        : s.language === "Hindi"
-          ? `सहेज दिया। अब डैशबोर्ड पर ${s.saved.quantityKg} किलो और ${s.saved.storageDays} दिन हैं। धन्यवाद।`
-          : `जतन केले. आता डॅशबोर्डवर ${s.saved.quantityKg} किलो आणि ${s.saved.storageDays} दिवस आहेत. धन्यवाद.`,
+      stockConfirmation(s.language, s.saved),
     );
     save(s);
     db.exec("COMMIT");
@@ -128,12 +126,26 @@ function confirm(s) {
 demoRouter.get("/status", (_, res) =>
   res.json({
     groq: Boolean(process.env.GROQ_API_KEY),
+    gemini: Boolean(process.env.GEMINI_API_KEY),
     model: chatModel(),
     stt: "whisper-large-v3-turbo",
     tts: "canopylabs/orpheus-v1-english",
   }),
 );
 demoRouter.get("/calls", (_, res) => res.json(sessions()));
+demoRouter.get(
+  "/calls/:id/receipt",
+  endpoint((req, res) => {
+    const s = get(req.params.id);
+    if (s.status !== "ended")
+      throw new Error("Receipt is available after the call ends.");
+    if (!s.receipt) {
+      s.receipt = callReceipt(s);
+      save(s);
+    }
+    res.json(s.receipt);
+  }),
+);
 demoRouter.post(
   "/calls",
   endpoint((req, res) => {
@@ -190,10 +202,10 @@ demoRouter.post(
       s,
       "assistant",
       s.language === "English"
-        ? `Hello! This is AgriSell, your AI farming assistant. This is a demo call, and market prices are illustrative. Before we review your ${s.crop.toLowerCase()} sale, how many kilograms do you currently have available?`
+        ? `Hello! This is AgriSell, your AI farming assistant. I can help review your stock and available price information. Before we review your ${s.crop.toLowerCase()} sale, how many kilograms do you currently have available?`
         : s.language === "Hindi"
-          ? `नमस्ते! मैं एग्रीसेल का एआई सहायक हूँ। यह डेमो कॉल है। आपके पास अभी कितने किलो माल बाकी है?`
-          : `नमस्कार! मी अ‍ॅग्रीसेलचा एआय सहाय्यक आहे. हा डेमो कॉल आहे. तुमच्याकडे आता किती किलो माल शिल्लक आहे?`,
+          ? `नमस्ते! मैं एग्रीसेल का एआई सहायक हूँ। मैं आपके माल और उपलब्ध भाव की जानकारी में मदद कर सकता हूँ। आपके पास अभी कितने किलो माल बाकी है?`
+          : `नमस्कार! मी अ‍ॅग्रीसेलचा एआय सहाय्यक आहे. मी तुमच्या मालाची माहिती घेण्यासाठी फोन केला आहे. तुमच्याकडे आता किती किलो माल शिल्लक आहे?`,
     );
     res.json(save(s));
   }),
@@ -211,7 +223,7 @@ demoRouter.post(
       if (typeof text !== "string" || !text.trim() || text.length > 1500)
         throw new Error("Enter a reply under 1,500 characters.");
       if (s.messages.length >= 100)
-        throw new Error("Demo turn limit reached. Please start another call.");
+        throw new Error("Call turn limit reached. Please start another call.");
       if (isConfirmation(text) && completeProposal(s.pending)) {
         append(s, "user", text);
         return res.json(confirm(s));
